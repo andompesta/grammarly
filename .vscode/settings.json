@@ -1,0 +1,17 @@
+{
+    "python.defaultInterpreterPath": "/Users/scavallari/miniconda3/envs/gflownet/bin/python3.8",
+    "python.envFile": "${workspaceFolder}/.env",
+    "debug.console.fontFamily": "Cascadia Code Light",
+    "debug.console.fontSize": 15,
+    "debug.console.lineHeight": 21,
+    "autoDocstring.docstringFormat": "sphinx",
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.lintOnSave": true,
+    "python.linting.flake8Args": [
+        "--ignore=E501, E302, E303, E305, E741, F401, W293",
+        "W291",
+        "--verbose"
+    ],
+    "python.formatting.provider": "black"
+}
