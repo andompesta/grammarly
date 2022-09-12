@@ -13,6 +13,28 @@
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "args":[]
+        }, {
+            "name": "Python: train File",
+            "type": "python",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args":[
+                "--run_name",
+                "only single shard",
+                "--notes",
+                "test training process end to end",
+                "--training_path",
+                "data/train",
+                "--valid_path",
+                "data/val",
+                "--ckp_path",
+                "ckpts",
+                "--shard_id",
+                "2"
+            ]
         }
     ]
 }
