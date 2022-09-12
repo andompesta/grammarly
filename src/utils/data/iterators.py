@@ -256,6 +256,7 @@ class FrozenBatchSampler:
     def __len__(self) -> int:
         return len(self.batches)
 
+
 class EpochBatchIterator(EpochBatchIterating):
     """A multi-epoch iterator over a :class:`torch.utils.data.Dataset`.
     Compared to :class:`torch.utils.data.DataLoader`, this iterator:
@@ -289,14 +290,26 @@ class EpochBatchIterator(EpochBatchIterating):
     """
 
     def __init__(
-        self, dataset, collate_fn, batch_sampler, seed=1, num_shards=1, shard_id=0,
-        num_workers=0, epoch=1, buffer_size=0, max_iter_len=0, timeout=0
+        self,
+        dataset,
+        collate_fn,
+        batch_sampler,
+        seed=1,
+        num_shards=1,
+        shard_id=0,
+        num_workers=0,
+        epoch=1,
+        buffer_size=0,
+        max_iter_len=0,
+        timeout=0,
     ):
         assert isinstance(dataset, torch.utils.data.Dataset)
         self.dataset = dataset
         self.collate_fn = collate_fn
         self.batch_sampler = batch_sampler
-        self._frozen_batches = tuple(batch_sampler) if not callable(batch_sampler) else None
+        self._frozen_batches = (
+            tuple(batch_sampler) if not callable(batch_sampler) else None
+        )
         self.seed = seed
         self.num_shards = num_shards
         self.shard_id = shard_id
@@ -311,7 +324,7 @@ class EpochBatchIterator(EpochBatchIterating):
         self.shuffle = True
         self._cur_epoch_itr = None
         self._next_epoch_itr = None
-        self._supports_prefetch = getattr(dataset, 'supports_prefetch', False)
+        self._supports_prefetch = getattr(dataset, "supports_prefetch", False)
 
     @property
     def frozen_batches(self):
@@ -358,7 +371,9 @@ class EpochBatchIterator(EpochBatchIterating):
                 # reset _frozen_batches to refresh the next epoch
                 self._frozen_batches = None
             self._cur_epoch_itr = self._get_iterator_for_epoch(
-                self.epoch, shuffle, fix_batches_to_gpus=fix_batches_to_gpus,
+                self.epoch,
+                shuffle,
+                fix_batches_to_gpus=fix_batches_to_gpus,
             )
         self.shuffle = shuffle
         return self._cur_epoch_itr
@@ -379,20 +394,20 @@ class EpochBatchIterator(EpochBatchIterating):
     def state_dict(self):
         """Returns a dictionary containing a whole state of the iterator."""
         return {
-            'epoch': self.epoch,
-            'iterations_in_epoch': self.iterations_in_epoch,
-            'shuffle': self.shuffle,
+            "epoch": self.epoch,
+            "iterations_in_epoch": self.iterations_in_epoch,
+            "shuffle": self.shuffle,
         }
 
     def load_state_dict(self, state_dict):
         """Copies the state of the iterator from the given *state_dict*."""
-        self.epoch = state_dict['epoch']
-        itr_pos = state_dict.get('iterations_in_epoch', 0)
+        self.epoch = state_dict["epoch"]
+        itr_pos = state_dict.get("iterations_in_epoch", 0)
         if itr_pos > 0:
             # fast-forward epoch iterator
             self._next_epoch_itr = self._get_iterator_for_epoch(
                 self.epoch,
-                shuffle=state_dict.get('shuffle', True),
+                shuffle=state_dict.get("shuffle", True),
                 offset=itr_pos,
             )
             if self._next_epoch_itr is None:
@@ -401,8 +416,9 @@ class EpochBatchIterator(EpochBatchIterating):
         else:
             self._next_epoch_itr = None
 
-    def _get_iterator_for_epoch(self, epoch, shuffle, fix_batches_to_gpus=False, offset=0):
-        
+    def _get_iterator_for_epoch(
+        self, epoch, shuffle, fix_batches_to_gpus=False, offset=0
+    ):
         def shuffle_batches(batches, seed):
             with data_utils.numpy_seed(seed):
                 np.random.shuffle(batches)
@@ -415,11 +431,11 @@ class EpochBatchIterator(EpochBatchIterating):
                 batches = shuffle_batches(list(batches), self.seed + epoch)
 
             if 0 < self.max_iter_len < len(self.frozen_batches):
-                batches = batches[:self.max_iter_len]
+                batches = batches[: self.max_iter_len]
 
-            batches = list(ShardedIterator(
-                batches, self.num_shards, self.shard_id, fill_value=[]
-            ))
+            batches = list(
+                ShardedIterator(batches, self.num_shards, self.shard_id, fill_value=[])
+            )
             self.dataset.prefetch([i for s in batches for i in s])
 
             if shuffle and fix_batches_to_gpus:
@@ -431,14 +447,14 @@ class EpochBatchIterator(EpochBatchIterating):
                 batches = self.frozen_batches
 
             if 0 < self.max_iter_len < len(self.frozen_batches):
-                batches = batches[:self.max_iter_len]
+                batches = batches[: self.max_iter_len]
 
-            batches = list(ShardedIterator(
-                batches, self.num_shards, self.shard_id, fill_value=[]
-            ))
+            batches = list(
+                ShardedIterator(batches, self.num_shards, self.shard_id, fill_value=[])
+            )
 
         if self.num_workers > 0:
-            os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
+            os.environ["PYTHONWARNINGS"] = "ignore:semaphore_tracker:UserWarning"
 
         # Create data loader
         itr = torch.utils.data.DataLoader(
@@ -449,7 +465,6 @@ class EpochBatchIterator(EpochBatchIterating):
             pin_memory=True,
             timeout=self.timeout,
         )
-        
 
         # Wrap with a BufferedIterator if needed
         if self.buffer_size > 0:

@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_sentences_per_batch", default=200, type=int)
     parser.add_argument("--max_tokens_per_batch", default=5000, type=int)
     parser.add_argument("--max_sentence_length", default=256, type=int)
-    parser.add_argument("--num_workers", default=1, type=int)
+    parser.add_argument("--num_workers", default=4, type=int)
     parser.add_argument("--optim_method", default="adam")
     parser.add_argument("--weight_decay", default=0.01, type=float)
     parser.add_argument("--lr", default=5e-5, type=float)
@@ -77,7 +77,8 @@ if __name__ == "__main__":
         max_sentence_length=args.max_sentence_length,
         max_sentences_per_batch=args.max_sentences_per_batch,
         num_gpus=args.n_gpus,
-        shard_id=args.shard_id
+        shard_id=args.shard_id,
+        num_workers=args.num_workers,
     )
 
     eval_epoch_gen = get_token_classfication_dataset(
@@ -169,33 +170,28 @@ if __name__ == "__main__":
             if epoch % args.eval_every == 0 or epoch == 1:
                 is_best = False
                 eval_iter_dl = eval_epoch_gen.next_epoch_itr(shuffle=True)
-                loss, (acc, prec, rec, f_score), _ = task.eval(
+                scores = task.eval(
                     model=model,
                     dataloader=eval_iter_dl,
                     device=device,
                 )
 
-                eval_loss.append(loss)
-                eval_acc.append(acc)
-                eval_prec.append(prec)
-                eval_recal.append(rec)
-                eval_f1.append(f_score)
+                eval_loss = scores.get("eval_loss")
+                eval_acc = scores.get("eval_acc")
+                eval_prec = scores.get("eval_prec")
+                eval_rec = scores.get("eval_rec")
+                eval_f_score = scores.get("eval_f_score")
+
                 print(
-                    f"--------->eval\tacc:{acc}\tloss{loss}\tprec:{prec}\trec:{rec}\tf1:{f_score}"
+                    f"--------->eval\tacc:{eval_acc}\tloss{eval_loss}\tprec:{eval_prec}\trec:{eval_rec}\tf1:{eval_f_score}"
                 )
                 run.log(
-                    dict(
-                        eval_loss=loss,
-                        eval_accuracy=acc,
-                        eval_precision=prec,
-                        eval_recal=rec,
-                        eval_f_1=f_score,
-                    ),
+                    scores,
                     step=epoch - 1,
                 )
 
-                if f_score > best_f1:
-                    best_f1 = f_score
+                if eval_f_score > best_f1:
+                    best_f1 = eval_f_score
                     is_best = True
 
                 if isinstance(model, torch.nn.DataParallel):

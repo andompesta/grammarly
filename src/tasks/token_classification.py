@@ -83,7 +83,7 @@ class TokenClassificationTask(OmniTask):
                 logits_t = model(
                     input_ids=src_seq_t,
                     attention_mask=attention_mask,
-                ).logits.squeeze()
+                ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
                 loss_t = loss_t.mean(-1).sum(0)
@@ -150,7 +150,7 @@ class TokenClassificationTask(OmniTask):
                 logits_t = model(
                     input_ids=src_seq_t,
                     attention_mask=attention_mask,
-                ).logits.squeeze()
+                ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
                 loss_t = loss_t.mean(0).sum(0)
@@ -182,10 +182,10 @@ class TokenClassificationTask(OmniTask):
         )
 
         scores = dict(
-            loss=total_loss,
-            accuracy=accuracy,
-            precision=prec,
-            recall=rec,
-            f_score=f_score,
+            eval_loss=total_loss,
+            eval_acc=accuracy,
+            eval_prec=prec,
+            eval_rec=rec,
+            eval_f_score=f_score,
         )
         return scores
