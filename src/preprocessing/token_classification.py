@@ -3,6 +3,7 @@ from src.utils import get_tokenizer
 from typing import *
 import pyarrow as pa
 import pyarrow.dataset as ds
+import os
 
 def tokenize_and_align_labels(
     example: Sequence[Dict[str, Any]],
@@ -49,6 +50,7 @@ def tokenize_and_align_labels(
 
 
 def encode(group):
+    # tokenize
     tokenizer = get_tokenizer("distilroberta-base")
     input_ids = []
     sizes = []
@@ -58,7 +60,9 @@ def encode(group):
     shards = []
     
     for example in group:
+        # shard used for filtering
         shards.append(example["shard"])
+        # from token to token_ids
         example = tokenize_and_align_labels(example, tokenizer)
         input_ids.append(example["input_ids"])
         sizes.append(example["length"][0])
@@ -79,7 +83,10 @@ def encode(group):
 
 
 
-def main(group_name: str):
+def main(
+    base_path: str,
+    group_name: str,
+):
 
     if group_name == "train":
         shards = [
@@ -93,9 +100,19 @@ def main(group_name: str):
 
     for i, (src_file_name, lbl_file_name) in enumerate(shards):
         dataset = []
-        with open("data/" + src_file_name, "r") as src_file, open("data/" + lbl_file_name, "r") as lbl_file:
+        src_path = os.path.join(
+            base_path,
+            src_file_name,
+        )
+        lbl_path = os.path.join(
+            base_path,
+            lbl_file_name,
+        )
+        with open(src_path, "r") as src_file, open(lbl_path, "r") as lbl_file:
             for idx, (src_line, lbl_line) in enumerate(zip(src_file, lbl_file)):
+                # read each line
                 if src_line == "\n":
+                    # skip empty lines
                     assert src_line == lbl_line
                     continue
                 
@@ -103,6 +120,7 @@ def main(group_name: str):
                 tags = [int(t) for t in lbl_line.strip().split()]
                 assert len(src_tokens) == len(tags)
 
+                # parse tokens of each example
                 example = dict(
                     tokens=src_tokens,
                     tags=tags,
@@ -112,14 +130,18 @@ def main(group_name: str):
                 dataset.append(example)
 
                 if idx % 10000 == 0:
+                    # logging
                     print(idx)
         
         dataset = encode(dataset)
+        # convert to pyarrow table
         dataset = pa.table(dataset)
+        # store as parquet file
         ds.write_dataset(
             dataset,
             "./data/{}".format(group_name),
             format="parquet",
+            # partitioning for fast filtering
             partitioning=["shards", "sizes"],
             partitioning_flavor="hive",
             existing_data_behavior="delete_matching",
