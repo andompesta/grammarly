@@ -33,10 +33,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n_gpus", default=1)
 
     parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
-    parser.add_argument("--unfreeze_layer", default=3, type=int)
+    parser.add_argument("--unfreeze_layer", default=0, type=int)
     parser.add_argument("--batches_per_epoch", default=100, type=int)
-    parser.add_argument("--max_sentences_per_batch", default=200, type=int)
-    parser.add_argument("--max_tokens_per_batch", default=5000, type=int)
+    parser.add_argument("--max_sentences_per_batch", default=300, type=int)
+    parser.add_argument("--max_tokens_per_batch", default=7000, type=int)
     parser.add_argument("--max_sentence_length", default=256, type=int)
     parser.add_argument("--num_workers", default=4, type=int)
     parser.add_argument("--optim_method", default="adam")
