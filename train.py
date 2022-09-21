@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--unfreeze_layer", default=0, type=int)
     parser.add_argument("--batches_per_epoch", default=100, type=int)
     parser.add_argument("--max_sentences_per_batch", default=600, type=int)
-    parser.add_argument("--max_tokens_per_batch", default=7000, type=int)
+    parser.add_argument("--max_tokens_per_batch", default=10000, type=int)
     parser.add_argument("--max_sentence_length", default=256, type=int)
     parser.add_argument("--num_workers", default=4, type=int)
     parser.add_argument("--optim_method", default="adam")
