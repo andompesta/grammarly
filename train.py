@@ -44,7 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", default=5e-5, type=float)
     parser.add_argument("--max_grad_norm", default=1.0, type=float)
     parser.add_argument("--eval_every", default=5, type=int)
-    parser.add_argument("--epochs", default=40, type=int)
+    parser.add_argument("--epochs", default=50, type=int)
     return parser.parse_args()
 
 
