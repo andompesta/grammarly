@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from torch import nn, Tensor, optim
 from typing import Tuple, Optional
 from src.tasks import OmniTask
@@ -86,7 +86,7 @@ class TokenClassificationTask(OmniTask):
                 ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
-                loss_t = loss_t.mean(-1).sum(0)
+                loss_t = loss_t.mean(-1).mean(0)
 
                 if self.args.gradient_accumulation_steps > 1:
                     # scale the loss if gradient accumulation is used
@@ -131,8 +131,6 @@ class TokenClassificationTask(OmniTask):
 
         loss_fn = self.get_loss_fn(type=kwargs.get("loss_type", "binary_cross_entropy"))
         total_loss = 0
-        n_pred_total = 0
-        n_pred_correct = 0
         steps = 0
 
         preds = []
@@ -153,7 +151,7 @@ class TokenClassificationTask(OmniTask):
                 ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
-                loss_t = loss_t.mean(0).sum(0)
+                loss_t = loss_t.mean(-1).mean(0)
 
             n_correct, pred_t, label_t = self.compute_correct(
                 logits=logits_t,
@@ -165,12 +163,9 @@ class TokenClassificationTask(OmniTask):
             labels.append(label_t.detach_().cpu().numpy())
 
             total_loss += loss_t
-            n_pred_total += label_t.sum()
-            n_pred_correct += n_correct
             steps += 1
 
         total_loss /= steps
-        accuracy = n_pred_correct / n_pred_total
 
         labels = np.concatenate(labels)
         preds = np.concatenate(preds)
@@ -179,6 +174,10 @@ class TokenClassificationTask(OmniTask):
             labels,
             preds,
             average="macro",
+        )
+        accuracy = accuracy_score(
+            labels,
+            preds,
         )
 
         scores = dict(

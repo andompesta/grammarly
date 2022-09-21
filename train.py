@@ -1,4 +1,3 @@
-from typing import Optional
 import torch
 import numpy as np
 import argparse
@@ -33,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--n_gpus", default=1)
 
-    parser.add_argument("--gradient_accumulation_steps", default=2, type=int)
+    parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
     parser.add_argument("--unfreeze_layer", default=3, type=int)
     parser.add_argument("--batches_per_epoch", default=100, type=int)
     parser.add_argument("--max_sentences_per_batch", default=200, type=int)
