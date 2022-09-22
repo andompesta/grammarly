@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
     parser.add_argument("--unfreeze_layer", default=0, type=int)
-    parser.add_argument("--batches_per_epoch", default=100, type=int)
+    parser.add_argument("--batches_per_epoch", default=13000, type=int)
     parser.add_argument("--max_sentences_per_batch", default=600, type=int)
     parser.add_argument("--max_tokens_per_batch", default=10000, type=int)
     parser.add_argument("--max_sentence_length", default=256, type=int)
@@ -68,8 +68,14 @@ if __name__ == "__main__":
     
     model = get_model(args.model_version, num_labels=1)
     
+    training_paths = filter(
+        lambda x: x.endswith(".arrow"),
+        os.listdir(args.args.training_path)
+    )
+    training_paths = [os.path.join(args.training_path, f) for f in training_paths]
+
     train_epoch_gen = get_token_classfication_dataset(
-        args.training_path,
+        training_paths,
         max_tokens_per_batch=args.max_tokens_per_batch,
         pad_token_id=model.config.pad_token_id,
         max_iter_length=args.batches_per_epoch,
@@ -80,6 +86,11 @@ if __name__ == "__main__":
         num_workers=args.num_workers,
     )
 
+    valid_paths = filter(
+        lambda x: x.endswith(".arrow"),
+        os.listdir(args.args.valid_path)
+    )
+    valid_paths = [os.path.join(args.valid_path, f) for f in valid_paths]
     eval_epoch_gen = get_token_classfication_dataset(
         args.valid_path,
         max_tokens_per_batch=args.max_tokens_per_batch,
@@ -116,11 +127,12 @@ if __name__ == "__main__":
             no_decay=["bias", "layer_norm.weight", "layer_norm.bias"],
         )
         unfreeze_layer_params(named_params, layer=args.unfreeze_layer)
-        optim = get_optimizer(
-            method=args.optim_method,
-            params=group_params,
-            lr=args.lr,
-        )
+        optim = torch.optim.AdamW(group_params, lr=args.lr)
+        #  get_optimizer(
+        #     method=args.optim_method,
+        #     params=group_params,
+        #     lr=args.lr,
+        # )
         scheduler = get_linear_scheduler_with_warmup(
             optim,
             args.num_warmup_steps,
@@ -151,12 +163,12 @@ if __name__ == "__main__":
         )
 
         for epoch in range(1, args.epochs + 1):
-            train_iter_dl = train_epoch_gen.next_epoch_itr(shuffle=True)
+            # train_iter_dl = train_epoch_gen.next_epoch_itr(shuffle=True)
             loss, acc = task.train(
                 model=model,
                 optimizer=optim,
                 scheduler=scheduler,
-                dataloader=train_iter_dl,
+                dataloader=train_epoch_gen,
                 device=device,
             )
 
