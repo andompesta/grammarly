@@ -144,14 +144,3 @@ def main(
             with pa.ipc.new_file(sink, schema=batches[0].schema) as writer:
                 for batch in batches:
                     writer.write(batch)
-
-        # store as parquet file
-        # ds.write_dataset(
-        #     dataset,
-        #     "./{}/{}".format(base_path, group_name),
-        #     format="parquet",
-        #     # partitioning for fast filtering
-        #     partitioning=["shards"],
-        #     partitioning_flavor="hive",
-        #     existing_data_behavior="delete_matching",
-        # )
