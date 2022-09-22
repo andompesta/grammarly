@@ -1,5 +1,5 @@
 from transformers import PreTrainedTokenizerFast
-from src.utils import get_tokenizer
+from src.utils import get_tokenizer, ensure_dir
 from typing import *
 import pyarrow as pa
 import pyarrow.dataset as ds
@@ -139,7 +139,7 @@ def preprocess(
 
 
         batches = dataset.to_batches()
-        with pa.OSFile("./{}/{}/shard_{}.arrow".format(base_path, group_name, i), 'wb') as sink:
+        with pa.OSFile(ensure_dir("./{}/{}/shard_{}.arrow".format(base_path, group_name, i)), 'wb') as sink:
             # Get the first batch to read the schema
             with pa.ipc.new_file(sink, schema=batches[0].schema) as writer:
                 for batch in batches:
