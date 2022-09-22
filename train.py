@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
                 save_checkpoint(
                     path_=os.path.join(
-                        args.ckp_path, args.task_name, db_name, model_name
+                        args.ckp_path, args.run_name, db_name, model_name
                     ),
                     state=state_dict,
                     is_best=is_best,
