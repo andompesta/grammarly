@@ -62,7 +62,10 @@ class TokenClassificationTask(OmniTask):
         **kwargs,
     ) -> Tuple[float, float]:
         model = model.train()
-        loss_fn = self.get_loss_fn(type=kwargs.get("loss_type", "binary_cross_entropy"))
+        loss_fn = self.get_loss_fn(
+            type=kwargs.get("loss_type", "binary_cross_entropy"),
+            pos_weight=kwargs.get("pos_weight", None),
+        ).to(device)
 
         total_loss = 0
         n_pred_total = 0
@@ -126,10 +129,19 @@ class TokenClassificationTask(OmniTask):
         self.global_step += int(steps)
         return total_loss, accuracy
 
-    def eval(self, model: nn.Module, dataloader: OmniDataset, device, **kwargs):
+    def eval(
+        self,
+        model: nn.Module,
+        dataloader: OmniDataset,
+        device,
+        **kwargs,
+    ):
         model = model.eval()
 
-        loss_fn = self.get_loss_fn(type=kwargs.get("loss_type", "binary_cross_entropy"))
+        loss_fn = self.get_loss_fn(
+            type=kwargs.get("loss_type", "binary_cross_entropy"),
+            pos_weight=kwargs.get("pos_weight", None),
+        ).to(device)
         total_loss = 0
         steps = 0
 
