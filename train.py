@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     training_paths = filter(
         lambda x: x.endswith(".arrow"),
-        os.listdir(args.args.training_path)
+        os.listdir(args.training_path)
     )
     training_paths = [os.path.join(args.training_path, f) for f in training_paths]
 
@@ -82,17 +82,16 @@ if __name__ == "__main__":
         max_sentence_length=args.max_sentence_length,
         max_sentences_per_batch=args.max_sentences_per_batch,
         num_gpus=args.n_gpus,
-        shard_id=args.shard_id,
         num_workers=args.num_workers,
     )
 
     valid_paths = filter(
         lambda x: x.endswith(".arrow"),
-        os.listdir(args.args.valid_path)
+        os.listdir(args.valid_path)
     )
     valid_paths = [os.path.join(args.valid_path, f) for f in valid_paths]
     eval_epoch_gen = get_token_classfication_dataset(
-        args.valid_path,
+        valid_paths,
         max_tokens_per_batch=args.max_tokens_per_batch,
         pad_token_id=model.config.pad_token_id,
         max_sentence_length=args.max_sentence_length,
@@ -127,12 +126,11 @@ if __name__ == "__main__":
             no_decay=["bias", "layer_norm.weight", "layer_norm.bias"],
         )
         unfreeze_layer_params(named_params, layer=args.unfreeze_layer)
-        optim = torch.optim.AdamW(group_params, lr=args.lr)
-        #  get_optimizer(
-        #     method=args.optim_method,
-        #     params=group_params,
-        #     lr=args.lr,
-        # )
+        optim = get_optimizer(
+            method=args.optim_method,
+            params=group_params,
+            lr=args.lr,
+        )
         scheduler = get_linear_scheduler_with_warmup(
             optim,
             args.num_warmup_steps,
@@ -163,12 +161,12 @@ if __name__ == "__main__":
         )
 
         for epoch in range(1, args.epochs + 1):
-            # train_iter_dl = train_epoch_gen.next_epoch_itr(shuffle=True)
+            train_iter_dl = train_epoch_gen.next_epoch_itr(shuffle=True)
             loss, acc = task.train(
                 model=model,
                 optimizer=optim,
                 scheduler=scheduler,
-                dataloader=train_epoch_gen,
+                dataloader=train_iter_dl,
                 device=device,
             )
 
