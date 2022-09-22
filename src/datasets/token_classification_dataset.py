@@ -1,14 +1,14 @@
 import numpy as np
 import torch
-from typing import Optional, Sequence, Tuple, List
+from typing import Sequence, Tuple, List
 
 from src.utils.data import (
     OmniDataset,
     data_utils,
     EpochBatchIterator,
+    ConcatDataset
 )
-from pyarrow import parquet as pq
-import pyarrow.compute as pc
+import pyarrow as pa
 
 def token_pad_bath(
         ids: Sequence[List[int]],
@@ -60,19 +60,17 @@ class TokenClassificationDataset(OmniDataset):
         pad_token_id: int,
         label_mask_token_id: int,
         shuffle: bool,
-        shard_id: Optional[int] = None,
     ):
         super(TokenClassificationDataset, self).__init__()
         self.shuffle = shuffle
         self.pad_token_id = pad_token_id
         self.label_mask_token_id = label_mask_token_id
-        self.table = pq.read_table(path)
-        if shard_id:
-            self.table = self.table.filter(pc.field("shards") == pc.scalar(shard_id))
-        
+
+        with pa.memory_map(path, 'r') as source:
+            self.table = pa.ipc.open_file(source).read_all()
+
         # get sizes
         self.sizes = np.array(self.table.column("sizes").to_pylist())
-        # get needed files
 
         self.table = self.table.select([
             "input_ids",
@@ -151,7 +149,7 @@ class TokenClassificationDataset(OmniDataset):
 
 
 def get_token_classfication_dataset(
-    path_: str,
+    paths: Sequence[str],
     max_tokens_per_batch: int,
     pad_token_id: int,
     seed: int = 0,
@@ -161,17 +159,26 @@ def get_token_classfication_dataset(
     num_gpus: int = 1,
     max_iter_length: int = 0,
     num_workers: int = 0,
-    shard_id: Optional[int] = None
 ):
+    if len(paths) == 1:
+        dataset = TokenClassificationDataset(
+            path=paths[0],
+            pad_token_id=pad_token_id,
+            label_mask_token_id=label_mask_token_id,
+            # optimized batch completness
+            shuffle=False,
+        )
+    else:
+        dataset = [
+            TokenClassificationDataset(
+                path=p,
+                pad_token_id=pad_token_id,
+                label_mask_token_id=label_mask_token_id,
+                shuffle=False,
+            ) for p in paths
+        ]
+        dataset = ConcatDataset(dataset)
 
-    dataset = TokenClassificationDataset(
-        path=path_,
-        pad_token_id=pad_token_id,
-        label_mask_token_id=label_mask_token_id,
-        # optimized batch completness
-        shuffle=False,
-        shard_id=shard_id,
-    )
 
     with data_utils.numpy_seed(seed):
         indices = dataset.ordered_indices()
@@ -196,10 +203,7 @@ def get_token_classfication_dataset(
         collate_fn=dataset.collater,
         batch_sampler=batch_sampler,
         seed=seed,
-        num_shards=1,
-        shard_id=0,
         num_workers=num_workers,
-        epoch=dataset.epoch,
         buffer_size=200,
         max_iter_len=max_iter_length
     )
