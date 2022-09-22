@@ -7,7 +7,7 @@ import os
 import queue
 import time
 from threading import Thread
-from typing import Iterator, List, Optional
+from typing import Iterator, List
 
 import numpy as np
 import torch
