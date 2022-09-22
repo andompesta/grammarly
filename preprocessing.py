@@ -1,3 +1,5 @@
-from src.preprocessing.token_classification import main
+from src.preprocessing.token_classification import preprocess
 
-main("./data", "train")
+preprocess("./data", "train")
+
+preprocess("./data", "val")

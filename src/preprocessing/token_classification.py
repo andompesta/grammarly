@@ -83,7 +83,7 @@ def encode(group):
 
 
 
-def main(
+def preprocess(
     base_path: str,
     group_name: str,
 ):
@@ -94,7 +94,7 @@ def main(
             (f"{group_name}srcab", f"{group_name}lblab"),
         ]
     elif group_name == "val":
-        shards = (f"{group_name}.src", f"{group_name}.lbl")
+        shards = [(f"{group_name}.src", f"{group_name}.lbl")]
 
 
     for i, (src_file_name, lbl_file_name) in enumerate(shards):
