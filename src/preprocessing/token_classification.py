@@ -87,12 +87,11 @@ def main(
     base_path: str,
     group_name: str,
 ):
-
     if group_name == "train":
         shards = [
+            (f"{group_name}srcac", f"{group_name}lblac"),
             (f"{group_name}srcaa", f"{group_name}lblaa"),
             (f"{group_name}srcab", f"{group_name}lblab"),
-            (f"{group_name}srcac", f"{group_name}lblac")
         ]
     elif group_name == "val":
         shards = (f"{group_name}.src", f"{group_name}.lbl")
@@ -127,7 +126,8 @@ def main(
                     idx=idx,
                     shard=i,
                 )
-                dataset.append(example)
+                if sum(tags) > 0:
+                    dataset.append(example)
 
                 if idx % 10000 == 0:
                     # logging
@@ -136,13 +136,22 @@ def main(
         dataset = encode(dataset)
         # convert to pyarrow table
         dataset = pa.table(dataset)
+
+
+        batches = dataset.to_batches()
+        with pa.OSFile("./{}/{}/shard_{}.arrow".format(base_path, group_name, i), 'wb') as sink:
+            # Get the first batch to read the schema
+            with pa.ipc.new_file(sink, schema=batches[0].schema) as writer:
+                for batch in batches:
+                    writer.write(batch)
+
         # store as parquet file
-        ds.write_dataset(
-            dataset,
-            "./data/{}".format(group_name),
-            format="parquet",
-            # partitioning for fast filtering
-            partitioning=["shards", "sizes"],
-            partitioning_flavor="hive",
-            existing_data_behavior="delete_matching",
-        )
+        # ds.write_dataset(
+        #     dataset,
+        #     "./{}/{}".format(base_path, group_name),
+        #     format="parquet",
+        #     # partitioning for fast filtering
+        #     partitioning=["shards"],
+        #     partitioning_flavor="hive",
+        #     existing_data_behavior="delete_matching",
+        # )
