@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pos_weight", type=float, default=None, help="weight for the positive class")
     parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
     parser.add_argument("--unfreeze_layer", default=3, type=int)
-    parser.add_argument("--batches_per_epoch", default=1000, type=int)
+    parser.add_argument("--batches_per_epoch", default=500, type=int)
     parser.add_argument("--max_sentences_per_batch", default=600, type=int)
     parser.add_argument("--max_tokens_per_batch", default=10000, type=int)
     parser.add_argument("--max_sentence_length", default=256, type=int)
