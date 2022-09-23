@@ -8,7 +8,7 @@ def get_tokenizer(
 ) -> PreTrainedTokenizer:
     if model_name == "distilroberta-base":
         tokenizer = AutoTokenizer.from_pretrained(
-            'roberta-base',
+            'distilroberta-base',
             add_prefix_space=True,
             cache_dir=os.path.join(
                 cache_dir,
