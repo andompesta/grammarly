@@ -77,7 +77,7 @@ class TokenClassificationTask(OmniTask):
             src_seq_t, label_t = batch
 
             # compute masks
-            attention_mask = src_seq_t.eq(self.pad_token_id).float()
+            # attention_mask = src_seq_t.eq(self.pad_token_id).float()
             label_mask = (label_t != self.ignore_index).float()
 
             optimizer.zero_grad()
@@ -85,7 +85,7 @@ class TokenClassificationTask(OmniTask):
             with torch.set_grad_enabled(True):
                 logits_t = model(
                     input_ids=src_seq_t,
-                    attention_mask=attention_mask,
+                    # attention_mask=attention_mask,
                 ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
@@ -153,13 +153,13 @@ class TokenClassificationTask(OmniTask):
             src_seq_t, label_t = batch
 
             # compute masks
-            attention_mask = src_seq_t.eq(self.pad_token_id).float()
+            # attention_mask = src_seq_t.eq(self.pad_token_id).float()
             label_mask = (label_t != self.ignore_index).float()
 
             with torch.set_grad_enabled(False):
                 logits_t = model(
                     input_ids=src_seq_t,
-                    attention_mask=attention_mask,
+                    # attention_mask=attention_mask,
                 ).logits.squeeze(-1)
                 loss_t = loss_fn(logits_t, label_t)
                 loss_t *= label_mask
