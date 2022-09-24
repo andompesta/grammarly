@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db_name", default="grammarly")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--n_gpus", default=1)
-    parser.add_argument("--pos_weight", type=float, default=None, help="weight for the positive class")
+    parser.add_argument("--pos_weight", type=float, default=5, help="weight for the positive class")
     parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
     parser.add_argument("--unfreeze_layer", default=3, type=int)
     parser.add_argument("--batches_per_epoch", default=500, type=int)
