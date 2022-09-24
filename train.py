@@ -20,18 +20,42 @@ from src.tasks import TokenClassificationTask
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run_name", required=True)
-    parser.add_argument("--notes", required=True)
-    parser.add_argument("--training_path", type=str, required=True)
-    parser.add_argument("--valid_path", type=str, required=True)
-    parser.add_argument("--ckp_path", type=str, required=True)
-    
+    parser.add_argument("--run_name", required=True, help="run name used by wandb")
+    parser.add_argument(
+        "--notes",
+        required=True,
+        help="run descrition added to wandb be for experiment traking",
+    )
+    parser.add_argument(
+        "--training_path",
+        type=str,
+        required=True,
+        help="path to the training dataset folder. It is expected to have multiple parquet files inside",
+    )
+    parser.add_argument(
+        "--valid_path",
+        type=str,
+        required=True,
+        help="path to the validation dataset folder. It is expected to have parquet files inside",
+    )
+    parser.add_argument(
+        "--ckp_path",
+        type=str,
+        required=True,
+        help="path to the checkpoint folder",
+    )
+
     parser.add_argument("--task_name", default="token_classification")
     parser.add_argument("--model_version", default="distilroberta-base")
     parser.add_argument("--db_name", default="grammarly")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--n_gpus", default=1)
-    parser.add_argument("--pos_weight", type=float, default=5, help="weight for the positive class")
+    parser.add_argument(
+        "--pos_weight",
+        type=float,
+        default=5,
+        help="weight for the positive class",
+    )
     parser.add_argument("--gradient_accumulation_steps", default=1, type=int)
     parser.add_argument("--unfreeze_layer", default=3, type=int)
     parser.add_argument("--batches_per_epoch", default=500, type=int)
@@ -65,12 +89,11 @@ if __name__ == "__main__":
 
     args = parse_args()
     device = torch.device(args.device)
-    
+
     model = get_model(args.model_version, num_labels=1)
-    
+
     training_paths = filter(
-        lambda x: x.endswith(".arrow"),
-        os.listdir(args.training_path)
+        lambda x: x.endswith(".arrow"), os.listdir(args.training_path)
     )
     training_paths = [os.path.join(args.training_path, f) for f in training_paths]
 
@@ -85,10 +108,7 @@ if __name__ == "__main__":
         num_workers=args.num_workers,
     )
 
-    valid_paths = filter(
-        lambda x: x.endswith(".arrow"),
-        os.listdir(args.valid_path)
-    )
+    valid_paths = filter(lambda x: x.endswith(".arrow"), os.listdir(args.valid_path))
     valid_paths = [os.path.join(args.valid_path, f) for f in valid_paths]
     eval_epoch_gen = get_token_classfication_dataset(
         valid_paths,
@@ -101,11 +121,11 @@ if __name__ == "__main__":
 
     if args.batches_per_epoch != len(train_epoch_gen):
         args.batches_per_epoch = len(train_epoch_gen)
-    
+
     args = compute_warmup_steps(args)
     model_name = model.config._name_or_path
     db_name = args.db_name
-    
+
     exp_name = f'{args.run_name}-{args.task_name}-{db_name}-{model_name}-{datetime.now().strftime("%d-%m-%y_%H-%M-%S")}'
     print(f"RUNNING EXPERIMENT -> {exp_name}")
 
@@ -116,7 +136,6 @@ if __name__ == "__main__":
         notes=args.notes,
         config=vars(args),
     ) as run:
-
 
         # setup optimizers
         named_params = list(model.named_parameters())
@@ -142,7 +161,7 @@ if __name__ == "__main__":
         if torch.cuda.device_count() > 1 and args.n_gpus > 1:
             model = torch.nn.DataParallel(model, device_ids=[1, 0])
             args.max_sentences_per_batch *= args.max_sentences_per_batch
-            args.max_tokens_per_batch *= (args.n_gpus // 2)
+            args.max_tokens_per_batch *= args.n_gpus // 2
 
         best_f1 = 0.0
         train_loss = []
@@ -168,7 +187,7 @@ if __name__ == "__main__":
                 scheduler=scheduler,
                 dataloader=train_iter_dl,
                 device=device,
-                pos_weight=torch.tensor([args.pos_weight])
+                pos_weight=torch.tensor([args.pos_weight]),
             )
 
             train_loss.append(loss)
