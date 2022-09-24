@@ -2,7 +2,6 @@ from transformers import PreTrainedTokenizerFast
 from src.utils import get_tokenizer, ensure_dir
 from typing import *
 import pyarrow as pa
-import pyarrow.dataset as ds
 import os
 
 def tokenize_and_align_labels(
@@ -34,7 +33,7 @@ def tokenize_and_align_labels(
             label_ids.append(tags[word_idx])
 
         else:
-            label_ids.append(-100)
+            label_ids.append(mask_idx)
 
         previous_word_idx = word_idx
 
@@ -144,3 +143,69 @@ def preprocess(
             with pa.ipc.new_file(sink, schema=batches[0].schema) as writer:
                 for batch in batches:
                     writer.write(batch)
+
+def inference_preprocess(
+    base_path: str,
+    file_name: str,
+):
+    src_path = os.path.join(
+        base_path,
+        file_name+".src",
+    )
+
+    tokenizer = get_tokenizer("distilroberta-base")
+    input_ids = []
+    sizes = []
+    labels = []
+    tags = []
+    idxs = []
+
+    with open(src_path, "r") as src_file:
+        for idx, src_line in enumerate(src_file):
+            # read each line
+            if src_line == "\n":
+                # skip empty lines
+                continue
+            src_tokens = src_line.strip().split()
+
+            # parse tokens of each example
+            example = dict(
+                tokens=src_tokens,
+                idx=idx,
+                tags=[0]*len(src_tokens),
+            )
+
+
+            if idx % 10000 == 0:
+                # logging
+                print(idx)
+
+            example = tokenize_and_align_labels(
+                example=example,
+                tokenizer=tokenizer,
+                mask_idx=-100
+            )
+
+            input_ids.append(example["input_ids"])
+            sizes.append(example["length"][0])
+            labels.append(example["labels"])
+            tags.append(example["tags"])
+            idxs.append(example["idx"])
+
+    assert len(idxs) == len(input_ids) == len(sizes) == len(labels)
+
+    dataset = dict(
+        input_ids=input_ids,
+        sizes=sizes,
+        labels=labels,
+        tags=tags,
+        idxs=idxs,
+    )
+
+    dataset = pa.table(dataset)
+    batches = dataset.to_batches()
+    with pa.OSFile(ensure_dir("./{}/{}/full.arrow".format(base_path, file_name)), 'wb') as sink:
+        # Get the first batch to read the schema
+        with pa.ipc.new_file(sink, schema=batches[0].schema) as writer:
+            for batch in batches:
+                writer.write(batch)
