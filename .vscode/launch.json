@@ -32,8 +32,24 @@
                 "data/val",
                 "--ckp_path",
                 "ckpts",
-                "--shard_id",
-                "2"
+                "--pos_weight",
+                "10"
+            ]
+        }, {
+            "name": "Python: inference File",
+            "type": "python",
+            "request": "launch",
+            "program": "inference.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "args":[
+                "--test_path",
+                "data/test/full.arrow",
+                "--pred_path",
+                "data/test/pred.lbl",
+                "--ckp_path",
+                "ckpts/pos-weight-5/grammarly/distilroberta-base/model_best.pth.tar",
             ]
         }
     ]
