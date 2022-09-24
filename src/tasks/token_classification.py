@@ -4,7 +4,7 @@ from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from torch import nn, Tensor, optim
 from typing import Tuple, Optional
 from src.tasks import OmniTask
-from src.utils.data import OmniDataset
+from torch.utils.data import DataLoader
 from argparse import Namespace
 
 
@@ -57,7 +57,7 @@ class TokenClassificationTask(OmniTask):
         model: nn.Module,
         optimizer: optim.Optimizer,
         scheduler: optim.lr_scheduler.LambdaLR,
-        dataloader: OmniDataset,
+        dataloader: DataLoader,
         device,
         **kwargs,
     ) -> Tuple[float, float]:
@@ -132,7 +132,7 @@ class TokenClassificationTask(OmniTask):
     def eval(
         self,
         model: nn.Module,
-        dataloader: OmniDataset,
+        dataloader: DataLoader,
         device,
         **kwargs,
     ):
@@ -200,3 +200,42 @@ class TokenClassificationTask(OmniTask):
             eval_f_score=f_score,
         )
         return scores
+
+    @staticmethod
+    def inference(
+        model: nn.Module,
+        dataloader: DataLoader,
+        device,
+        pad_token_id: int,
+        ignore_index: int,
+        th: float = 0.5,
+        **kwargs,
+    ):
+        model = model.eval()
+        preds = []
+
+        for batch_idx, batch in enumerate(dataloader):
+            batch = tuple(t.to(device) for t in batch)
+            src_seq_t, token_mask = batch
+
+            # compute masks
+            attention_mask = src_seq_t.ne(pad_token_id).float()
+
+            with torch.no_grad():
+                logits_t = model(
+                    input_ids=src_seq_t,
+                    attention_mask=attention_mask,
+                ).logits.squeeze(-1)
+
+                pred_t = torch.sigmoid(logits_t).detach_().cpu()
+                mask = token_mask.ne(ignore_index).bool().cpu()
+                assert mask.shape == pred_t.shape
+
+            for m, p in zip(mask, pred_t):
+                # get prediction at the word level
+                p = torch.masked_select(p, m)
+                # compare predicted probability with threshold to get labels
+                label = (p > th).long()
+                preds.append(label.numpy().tolist())
+
+        return preds

@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor, optim
-from typing import Tuple, Dict
-from src.utils.data import OmniDataset
-
+from typing import Tuple
+from torch.utils.data import DataLoader
 
 class OmniTask(ABC):
     def __init__(
@@ -45,7 +44,7 @@ class OmniTask(ABC):
         model: nn.Module,
         optimizer: optim.Optimizer,
         scheduler: optim.lr_scheduler.LambdaLR,
-        dataloader: OmniDataset,
+        dataloader: DataLoader,
         device,
         **kwargs
     ):
@@ -61,7 +60,7 @@ class OmniTask(ABC):
         ...
 
     @abstractmethod
-    def eval(self, model: nn.Module, dataloader: OmniDataset, device, **kwargs):
+    def eval(self, model: nn.Module, dataloader: DataLoader, device, **kwargs):
         """
         Evaluation function
         :param model:
@@ -72,15 +71,3 @@ class OmniTask(ABC):
         """
         ...
 
-    def tb_plot_scalar(self, main_tag: str, scalar_dict: Dict[str, float], step: int):
-        """
-        plot the scala values in the dictionary on tensorboard.
-        :param main_tag: experiments tags
-        :param scalar_dict: Dict[name, value]
-        :param step: iteration numbet
-        :return:
-        """
-        self.writer.add_scalars(main_tag, scalar_dict, step)
-
-    def tb_plot_embedding(self, emb, word, step):
-        self.writer.add_embedding(emb, metadata=word, global_step=step)
