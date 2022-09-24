@@ -3,8 +3,8 @@ from src.preprocessing.token_classification import (
     inference_preprocess
 )
 
-# preprocess("data", "train")
+preprocess("data", "train")
 
-# preprocess("data", "val")
+preprocess("data", "val")
 
 inference_preprocess("data", "test")
