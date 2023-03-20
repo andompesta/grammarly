@@ -108,9 +108,3 @@ following:
     Please, do not share the test task or your solution! When storing
     code on services like GitHub, make sure it is private. Thank you.
 
-
-
-Feel free to ask questions by email: oleksiy.syvokon@grammarly.com
-
-
-Good luck!  :)
